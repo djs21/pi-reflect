@@ -1076,6 +1076,21 @@ export async function runReflection(
 	const totalBytes = allSessions ? allSessions.reduce((sum, s) => sum + s.size, 0) : transcripts.length;
 	notify(`Extracted ${totalSessionCount} sessions (${sessionCount} scanned, ${(totalBytes / 1024).toFixed(0)}KB)`, "info");
 
+	// Dedup: skip if we already reflected on this target+sourceDate
+	if (!options?.sourceDateOverride) {
+		const sourceDate = new Date();
+		sourceDate.setDate(sourceDate.getDate() - target.lookbackDays);
+		const sourceDateStr = sourceDate.toISOString().slice(0, 10);
+		const history = loadHistory();
+		const alreadyRan = history.some(
+			(r) => r.targetPath === targetPath && r.sourceDate === sourceDateStr,
+		);
+		if (alreadyRan) {
+			notify(`Already reflected on ${sourceDateStr} for this target — skipping`, "info");
+			return null;
+		}
+	}
+
 	// Resolve model — prefer current session model over target.model config
 	let model: any;
 	let apiKey: string | undefined;

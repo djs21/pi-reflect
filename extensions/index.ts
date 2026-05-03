@@ -103,25 +103,10 @@ export default function (pi: ExtensionAPI) {
 				? (msg, level) => ctx.ui.notify(msg, level)
 				: (msg, level) => console.log(`[reflect] [${level}] ${msg}`);
 
-			// Use the current session model if available
-			let currentModel: any;
-			let currentModelApiKey: string | undefined;
-			let currentModelHeaders: Record<string, string> | undefined;
-			if (ctx.model) {
-				// ModelRegistry API: getApiKey returns the key string directly
-				const key = await ctx.modelRegistry.getApiKey(ctx.model);
-				if (key) {
-					currentModel = ctx.model;
-					currentModelApiKey = key;
-					currentModelHeaders = undefined;
-				}
-			}
-
-			const run = await runReflection(target, modelRegistryRef, notify, undefined, {
-				currentModel,
-				currentModelApiKey,
-				currentModelHeaders,
-			});
+			// Always use the model from reflect.json target config, not the session model.
+			// The session model is often a cheap default (haiku) or expensive override (opus)
+			// that doesn't match the intended reflect model.
+			const run = await runReflection(target, modelRegistryRef, notify, undefined, {});
 
 			if (run) {
 				const history = loadHistory();
